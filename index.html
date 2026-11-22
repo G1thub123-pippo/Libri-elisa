@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Libri a voce</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-180.png"><meta name="theme-color" content="#f2b705">
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fdf8e7;--card:#fffdf6;--ink:#2a2418;--mute:#8a7d5c;--line:#eee3bd;--acc:#f2b705;--rec:#d6332b}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1a18;--card:#262320;--ink:#ece6dc;--mute:#9c9286;--line:#3a3530;--acc:#f5c518}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:12px 14px}
+header h1{flex:1;margin:0;font:600 19px Literata,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer}
+button.pri{background:var(--acc);border-color:var(--acc);color:#2a2418;font-weight:600}
+button.ghost{border:none;background:none;padding:6px 8px}
+main{max-width:760px;margin:0 auto;padding:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.book{background:var(--card);border:1px solid var(--line);border-radius:6px 12px 12px 6px;border-left:6px solid var(--acc);padding:14px;min-height:150px;display:flex;flex-direction:column;cursor:pointer}
+.book b{font:600 17px Literata,serif;flex:1}
+.book small{color:var(--mute)}
+.empty{color:var(--mute);text-align:center;padding:50px 10px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--bg);position:sticky;top:57px;z-index:4}
+.tabs button{white-space:nowrap;border-radius:20px;padding:6px 12px;font-size:13px}
+.tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input.ttl{width:100%;font:600 22px Literata,serif;border:none;background:none;color:var(--ink);padding:6px 0;outline:none;border-bottom:1px dashed var(--line)}
+textarea{width:100%;min-height:55vh;resize:vertical;border:none;background:var(--card);color:var(--ink);font:17px/1.7 Literata,serif;padding:16px;border-radius:12px;outline:none;margin-top:10px;border:1px solid var(--line)}
+.partial{color:var(--mute);font-style:italic;min-height:20px;padding:6px 4px;font-family:Literata,serif}
+.bar{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.mic{width:58px;height:58px;border-radius:50%;font-size:24px;display:grid;place-items:center;padding:0}
+.mic{position:relative;width:auto!important;min-width:150px;border-radius:30px!important;gap:8px;display:flex!important;align-items:center;justify-content:center;font-size:15px!important;font-weight:600;padding:0 18px!important}
+.mic::after{content:'Avvia ascolto'}
+.mic.on{background:var(--rec);border-color:var(--rec);color:#fff;animation:p 1.4s infinite;box-shadow:inset 0 3px 6px rgba(0,0,0,.3);transform:translateY(1px)}
+.mic.on::after{content:'In ascolto · Ferma'}
+@keyframes p{50%{box-shadow:0 0 0 10px rgba(214,51,43,.15)}}
+.st{font-size:12px;color:var(--mute);flex:1}
+.toc h2{font:600 24px Literata,serif;text-align:center}
+.toc ol{list-style:none;padding:0}
+.toc li{display:flex;align-items:baseline;gap:8px;padding:10px 0;border-bottom:1px dotted var(--line);cursor:pointer;font-family:Literata,serif;font-size:17px}
+.toc li span.n{color:#c08f00;width:28px}
+.toc li span.t{flex:1}
+.toc li small{color:var(--mute)}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:grid;place-items:center;z-index:40;padding:20px}
+.modal div.box{background:var(--card);border-radius:14px;padding:18px;width:100%;max-width:380px}
+.modal input{width:100%;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin:10px 0}
+.hide{display:none!important}
+
+/* libreria */
+.shelf{--row:230px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:0 4px;padding:0 14px;border-radius:6px;
+ background:linear-gradient(#5a3b22,#3f2914);box-shadow:inset 0 0 30px rgba(0,0,0,.5);
+ background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--row) - 16px),#a8774a calc(var(--row) - 16px),#7a5230 calc(var(--row) - 4px),#2c1c0d var(--row)),linear-gradient(#4a311b,#35220f)}
+.slot{height:230px;display:flex;align-items:flex-end;padding-bottom:16px}
+.spine{writing-mode:vertical-rl;transform:rotate(180deg);cursor:pointer;border-radius:3px 3px 2px 2px;display:flex;align-items:center;justify-content:space-between;padding:12px 0;
+ font:600 15px Literata,serif;color:#fff8e6;text-shadow:0 1px 1px rgba(0,0,0,.4);
+ box-shadow:inset -4px 0 6px rgba(0,0,0,.25),inset 3px 0 3px rgba(255,255,255,.2),2px 0 3px rgba(0,0,0,.4);
+ background-image:linear-gradient(to right,rgba(0,0,0,.18),transparent 25%,rgba(255,255,255,.12) 50%,transparent 75%,rgba(0,0,0,.2));transition:transform .15s}
+.spine:hover{transform:rotate(180deg) translateX(4px)}
+.spine .t{max-height:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spine .b{border-top:2px solid rgba(255,230,150,.7);border-bottom:2px solid rgba(255,230,150,.7);height:20px;width:100%}
+.spine small{font:500 10px Inter;opacity:.8;white-space:nowrap}
+/* pagina */
+.page{background:#fffbef;background-image:linear-gradient(to right,rgba(0,0,0,.07),transparent 6%,transparent 94%,rgba(0,0,0,.04));
+ border-radius:2px 8px 8px 2px;box-shadow:0 1px 2px rgba(0,0,0,.1),0 8px 24px rgba(80,60,10,.15),6px 6px 0 -2px #f3ead2,6px 6px 0 -1px #ddd0a8,11px 11px 0 -4px #efe4c6,11px 11px 0 -3px #d7c89c;
+ padding:34px 30px 20px 38px;margin:10px 8px 24px 0;color:#2b2418}
+.page input.ttl{text-align:center;border-bottom:none;font-size:24px;color:#2b2418}
+.page .orn{text-align:center;color:#c9a227;letter-spacing:8px;margin:2px 0 8px}
+.page textarea{background:transparent;border:none;border-radius:0;padding:4px 0;color:#2b2418;font:18px/32px Literata,serif;text-align:justify;hyphens:auto;
+ background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,rgba(180,150,60,.18) 31px,rgba(180,150,60,.18) 32px);background-attachment:local;min-height:60vh}
+.page .folio{text-align:center;color:#9c8a5a;font:italic 13px Literata,serif;margin-top:8px}
+.tools{display:flex;gap:6px;justify-content:center;margin:0 0 8px}
+.tools button{font-size:12px;padding:5px 9px}
+.ver{text-align:center;color:var(--mute);font-size:12px;margin:18px 0}
+#login,#panel{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+#panel{background:rgba(0,0,0,.45);z-index:25}
+.lbox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;width:100%;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.lbox h2{font:600 24px Literata,serif;margin:0 0 4px;text-align:center}
+.lbox p{color:var(--mute);margin:4px 0 14px;text-align:center;font-size:13px}
+.lbox input{width:100%;font:inherit;padding:11px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin:5px 0}
+.lbox button.pri{width:100%;margin-top:10px;padding:11px}
+.lbox .err{color:#b3261e;font-size:13px;min-height:18px;text-align:center}
+.ulist{max-height:40vh;overflow:auto;margin:8px 0;border-top:1px solid var(--line)}
+.ulist div{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line)}
+.lbox label{font-size:13px;color:var(--mute);display:flex;gap:6px;align-items:center;margin:6px 0}
+.lbox label input{width:auto;margin:0}
+#hact{display:flex;gap:6px;align-items:center}#mn,#bm{font-size:13px;padding:7px 10px;white-space:nowrap}.shh{font:600 17px Literata,serif;margin:22px 4px 10px}
+.lbox select{font:inherit}
+.shr{writing-mode:horizontal-tb;transform:rotate(180deg);width:24px;height:24px;flex:none;border-radius:6px;border:2px solid #f2b705;background:#fffbef;margin-top:6px;
+ display:flex;align-items:center;justify-content:center;font:700 15px Inter;color:#2a2418;text-shadow:none;box-shadow:0 1px 3px rgba(0,0,0,.4);cursor:pointer}
+.shr.on{background:#f2b705}
+.spine{padding-top:8px!important}
+.shlab{font-size:12px;color:var(--mute);margin:6px 4px 0}
+</style>
+</head>
+<body>
+<header><button class="ghost hide" id="back">‹</button><h1 id="htitle">Libreria</h1><span id="hact"></span><button class="ghost" id="auth" title="Accedi">👤</button></header>
+<div id="tabs" class="tabs hide"></div>
+<main id="main"></main>
+<div id="bar" class="bar hide">
+  <span class="st" id="st">Scrivi o tocca il microfono</span>
+  <button class="mic" id="mic" title="Dettatura" aria-pressed="false"><span id="mico">🎙</span></button>
+  <span class="st" id="cnt" style="text-align:right"></span>
+</div>
+<div id="login"><form class="lbox" id="lf"><img src="icon-192.png" alt="" style="width:64px;display:block;margin:0 auto 8px;border-radius:14px"><h2>Libri a voce</h2><p>Accedi con le credenziali ricevute</p>
+<input id="lu" placeholder="Utente" autocomplete="username" autocapitalize="none"><input id="lp" type="password" placeholder="Password" autocomplete="current-password">
+<div class="err" id="le"></div><button class="pri" type="submit">Entra</button></form></div>
+<div id="panel" class="hide"><div class="lbox" id="pb"></div></div>
+<div id="modal" class="modal hide"><div class="box"><b id="mq"></b><input id="mi"><div class="row" style="justify-content:flex-end"><button id="mno">Annulla</button><button class="pri" id="mok">OK</button></div></div></div>
+<script>
+const VERSIONE='1.5.1';
+const $=s=>document.querySelector(s);
+let shared=[],selPos=null,armed=false,books=[],cur=null,chap=null,listening=false,saveT=null;
+let LS=null;
+const uidGen=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+function lsLoad(){try{books=LS?JSON.parse(localStorage.getItem(LS))||[]:[]}catch(e){books=[]}}
+function lsSave(){if(!LS)return;try{localStorage.setItem(LS,JSON.stringify(books))}catch(e){}}
+lsLoad();
+function persist(b){b.updated=Date.now();lsSave();clearTimeout(saveT);
+  saveT=setTimeout(()=>{window.cloud&&window.cloud.save(b)},800)}
+function ask(q,v=''){return new Promise(r=>{$('#mq').textContent=q;$('#mi').value=v;$('#mi').type=q==='Password'?'password':q==='Email'?'email':'text';$('#modal').classList.remove('hide');$('#mi').focus();
+  const done=x=>{$('#modal').classList.add('hide');$('#mok').onclick=$('#mno').onclick=$('#mi').onkeydown=null;r(x)};
+  $('#mok').onclick=()=>done($('#mi').value.trim());$('#mno').onclick=()=>done(null);
+  $('#mi').onkeydown=e=>{if(e.key==='Enter')done($('#mi').value.trim())}})}
+const words=t=>(t.trim().match(/\S+/g)||[]).length;
+
+function render(){
+  stopDict();
+  if(!cur){ // libreria
+    $('#back').classList.add('hide');$('#tabs').classList.add('hide');$('#bar').classList.add('hide');
+    $('#htitle').textContent='Libreria';
+    $('#hact').innerHTML='<button id="mn">⚙ Impostazioni</button><button class="pri" id="nb">+ Nuovo libro</button>';
+    $('#mn').onclick=libMenu;
+    $('#nb').onclick=async()=>{const t=await ask('Titolo del libro');if(!t)return;
+      const b={id:uidGen(),title:t,chapters:[{id:uidGen(),title:'Capitolo 1',text:''}],updated:Date.now()};
+      books.push(b);persist(b);open(b.id)};
+    const list=[...books].sort((a,b)=>b.updated-a.updated);
+    const pal=['#7a1f1f','#1f3d5c','#2f5a34','#5c3d1f','#4a2a5c','#8a6a12','#23484a','#6b2b45','#3a3a3a','#9a4a1a'];
+    const hash=t=>[...t].reduce((h,c)=>(h*31+c.charCodeAt(0))>>>0,7);
+    $('#main').innerHTML=list.length?'<div class="shelf">'+list.map(b=>{const h=hash(b.id);return `<div class="slot"><div class="spine" data-id="${b.id}" style="background-color:${pal[h%pal.length]};height:${170+h%40}px;width:${44+h%18}px"><span class="b"></span><span class="t">${esc(b.title)}</span><small>${b.chapters.length} cap.</small><span class="shr${b.shared?' on':''}" data-sh="${b.id}" title="${b.shared?'Condiviso: tocca per smettere':'Tocca per condividere'}">${b.shared?'✓':''}</span></div></div>`}).join('')+'<div class="slot" style="flex:1"></div></div><p class="shlab">☑ La casella in cima al libro lo condivide con gli altri utenti</p><p class="ver">Libri a voce · versione '+VERSIONE+'</p>':'<div class="empty">La libreria è vuota. Crea il primo libro con “+ Nuovo libro”.</div><p class="ver">Libri a voce · versione '+VERSIONE+'</p>';
+    if(shared.length)$('#main').querySelector('.ver').insertAdjacentHTML('beforebegin','<h3 class="shh">📚 Condivisi con te</h3><div class="shelf">'+shared.map(b=>{const h=hash(b.id);return `<div class="slot"><div class="spine" data-s="${b.id}" style="background-color:${pal[(h+3)%pal.length]};height:${170+h%40}px;width:${44+h%18}px"><span class="b"></span><span class="t">${esc(b.title)}</span><small>di ${esc(b._owner)}</small></div></div>`}).join('')+'<div class="slot" style="flex:1"></div></div>');
+    document.querySelectorAll(".spine").forEach(e=>e.onclick=()=>e.dataset.s?openShared(e.dataset.s):open(e.dataset.id));
+    document.querySelectorAll(".shr").forEach(e=>e.onclick=ev=>{ev.stopPropagation();const b=books.find(x=>x.id===e.dataset.sh);
+      b.shared=!b.shared;b.updated=Date.now();lsSave();window.cloud&&window.cloud.save(b);window.cloud&&window.cloud.share(b);render()});
+    return;
+  }
+  const b=cur,ro=!!b._ro;
+  $('#back').classList.remove('hide');$('#tabs').classList.remove('hide');
+  $('#htitle').textContent=b.title;
+  $('#hact').innerHTML='<button id="bm">⚙ Impostazioni</button><button class="ghost" id="rb" title="Rinomina">✎</button><button class="ghost" id="db" title="Elimina">🗑</button>';
+  $('#bm').onclick=bookMenu;
+  if(ro){$('#rb').remove();$('#db').remove();}
+  else{
+  $('#rb').onclick=async()=>{const t=await ask('Titolo del libro',b.title);if(t){b.title=t;persist(b);render()}};
+  $('#db').onclick=async()=>{const t=await ask('Scrivi ELIMINA per cancellare il libro');if(t==='ELIMINA'){books=books.filter(x=>x!==b);lsSave();window.cloud&&window.cloud.del(b.id);cur=null;render()}};
+  }
+  $('#tabs').innerHTML=`<button data-c="idx" class="${chap==='idx'?'on':''}">☰ Indice</button>`+b.chapters.map((c,i)=>`<button data-c="${c.id}" class="${chap===c.id?'on':''}">${i+1}. ${esc(c.title)}</button>`).join('')+(ro?'':'<button data-c="new">+ Capitolo</button>');
+  if(ro)$('#tabs').insertAdjacentHTML('beforeend','<span style="align-self:center;white-space:nowrap;color:var(--mute);font-size:12px;padding:0 6px">👁 di '+esc(b._owner)+' · sola lettura</span>');
+  $('#tabs').querySelectorAll('button').forEach(e=>e.onclick=async()=>{
+    if(e.dataset.c==='new'){const t=await ask('Titolo del capitolo','Capitolo '+(b.chapters.length+1));if(!t)return;const c={id:uidGen(),title:t,text:''};b.chapters.push(c);persist(b);chap=c.id}
+    else chap=e.dataset.c;render()});
+  if(chap==='idx'){ // indice
+    $('#bar').classList.add('hide');
+    $('#main').innerHTML=`<div class="toc"><h2>${esc(b.title)}</h2><h3 style="text-align:center;color:var(--mute);font-weight:500">Indice</h3><ol>`+
+      b.chapters.map((c,i)=>`<li data-c="${c.id}"><span class="n">${i+1}</span><span class="t">${esc(c.title)}</span><small>${words(c.text)} parole</small></li>`).join('')+
+      `</ol><p style="color:var(--mute);font-size:13px;text-align:center">Totale ${b.chapters.reduce((s,c)=>s+words(c.text),0)} parole</p></div>`;
+    $('#main').querySelectorAll('li').forEach(e=>e.onclick=()=>{chap=e.dataset.c;render()});
+    return;
+  }
+  const c=b.chapters.find(x=>x.id===chap)||b.chapters[0];chap=c.id;
+  const i=b.chapters.indexOf(c);
+  $('#bar').classList.toggle('hide',ro);
+  if(ro){$('#main').innerHTML=`<div class="page"><div class="orn">Capitolo ${i+1}</div><div class="ttl" style="text-align:center;font:600 24px Literata,serif">${esc(c.title)}</div><div class="orn">❦</div>
+  <textarea id="tx" readonly>${esc(c.text)}</textarea><div class="folio">— ${i+1} —</div></div>`;
+  selPos=null;{const t=$('#tx');['click','keyup','select','mouseup','touchend'].forEach(ev=>t.addEventListener(ev,()=>{selPos=[t.selectionStart,t.selectionEnd]}))}return}
+  $('#main').innerHTML=`<div class="page"><div class="tools"><button id="up" ${i?'':'disabled'}>↑</button><button id="dn" ${i<b.chapters.length-1?'':'disabled'}>↓</button><button id="del">Elimina capitolo</button></div>
+  <div class="orn">Capitolo ${i+1}</div><input class="ttl" id="ct" value="${esc(c.title)}"><div class="orn">❦</div>
+  <textarea id="tx" placeholder="C'era una volta…">${esc(c.text)}</textarea><div class="partial" id="pt"></div><div class="folio">— ${i+1} —</div></div>`;
+  const tx=$('#tx');
+  $('#ct').oninput=e=>{c.title=e.target.value;persist(b);const t=$('#tabs').querySelector(`[data-c="${c.id}"]`);if(t)t.textContent=(i+1)+'. '+c.title};
+  tx.oninput=()=>{c.text=tx.value;persist(b);count();selPos=[tx.selectionStart,tx.selectionEnd]};
+  ['click','keyup','select','blur'].forEach(ev=>tx.addEventListener(ev,()=>{selPos=[tx.selectionStart,tx.selectionEnd]}));selPos=null;
+  const mv=d=>{b.chapters.splice(i,1);b.chapters.splice(i+d,0,c);persist(b);render()};
+  $('#up').onclick=()=>mv(-1);$('#dn').onclick=()=>mv(1);
+  $('#del').onclick=async()=>{if(b.chapters.length<2){await ask('Un libro deve avere almeno un capitolo');return}
+    const t=await ask('Scrivi ELIMINA per cancellare “'+c.title+'”');if(t==='ELIMINA'){b.chapters.splice(i,1);chap=b.chapters[Math.max(0,i-1)].id;persist(b);render()}};
+  count();
+}
+function count(){const t=$('#tx');if(t)$('#cnt').textContent=words(t.value)+' parole'}
+function openShared(id){cur=shared.find(b=>b.id===id);chap=cur.chapters[0].id;render();scrollTo(0,0)}
+function open(id){cur=books.find(b=>b.id===id);chap=cur.chapters[0].id;render();scrollTo(0,0)}
+$('#back').onclick=()=>{cur=null;render()};
+function esc(s){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+
+function setArmed(v){armed=v;const m=$('#mic');m.classList.toggle('on',v);m.setAttribute('aria-pressed',v);if(!v)$('#st').textContent='Scrivi o tocca il microfono'}
+// dettatura con Web Speech API
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
+function insertText(text){
+  const tx=$('#tx');if(!tx||!text)return;
+  const s=tx.selectionStart,e=tx.selectionEnd,v=tx.value;
+  const before=v.slice(0,s),after=v.slice(e);
+  let ins=text.trim();if(!ins)return;
+  if(before&&!/\s$/.test(before))ins=' '+ins;
+  if(!before.trim()||/[.!?]\s*$/.test(before))ins=ins.replace(/^(\s*)(\S)/,(m,a,b)=>a+b.toUpperCase());
+  if(after&&!/^\s/.test(after))ins+=' ';
+  tx.value=before+ins+after;const pos=(before+ins).length;tx.setSelectionRange(pos,pos);
+  tx.dispatchEvent(new Event('input'));
+}
+function startRec(){
+  rec=new SR();rec.lang='it-IT';rec.continuous=true;rec.interimResults=true;
+  rec.onresult=ev=>{let part='';for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i];
+    if(r.isFinal)insertText(r[0].transcript);else part+=r[0].transcript}
+    const p=$('#pt');if(p)p.textContent=part};
+  rec.onstart=()=>{listening=true;$('#st').textContent='In ascolto… il testo va dove c’è il cursore'};
+  rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){setArmed(false);$('#st').textContent='Microfono non autorizzato'}};
+  rec.onend=()=>{listening=false;const p=$('#pt');if(p)p.textContent='';if(armed){try{startRec()}catch(e){}}};
+  rec.start();
+}
+$('#mic').onclick=()=>{
+  if(armed){setArmed(false);if(rec){rec.onend=null;rec.stop();listening=false;const p=$('#pt');if(p)p.textContent=''}return}
+  if(!SR){$('#st').textContent='Questo browser non supporta la dettatura: usa Chrome o Safari';return}
+  setArmed(true);try{startRec()}catch(e){setArmed(false)}};
+function stopDict(){if(armed){setArmed(false);if(rec){rec.onend=null;try{rec.stop()}catch(e){}}listening=false}}
+// ===== menu, backup, esportazione, importazione =====
+const LIB={docx:['https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js',()=>window.docx],
+  mammoth:['https://cdn.jsdelivr.net/npm/mammoth@1.13.0/mammoth.browser.min.js',()=>window.mammoth],
+  pdf:['https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',()=>window.jspdf]};
+function need(k){const [url,ok]=LIB[k];return new Promise((res,rej)=>{if(ok())return res();const sc=document.createElement('script');sc.src=url;
+  sc.onload=()=>ok()?res():rej(new Error('libreria'));sc.onerror=()=>rej(new Error('Serve la connessione internet'));document.head.appendChild(sc)})}
+function openPanel(h){$('#pb').innerHTML=h;$('#panel').classList.remove('hide')}
+function closePanel(){$('#panel').classList.add('hide')}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
+function pickFile(accept){return new Promise(r=>{const f=document.createElement('input');f.type='file';f.accept=accept;f.onchange=()=>r(f.files[0]||null);f.click()})}
+const fname=t=>(t||'libro').replace(/[\\/:*?"<>|]+/g,'').trim().slice(0,80)||'libro';
+const today=()=>new Date().toISOString().slice(0,10);
+const btn=(id,label,pri)=>`<button id="${id}" class="${pri?'pri':''}" style="width:100%;margin-top:8px">${label}</button>`;
+const msg=t=>{const e=$('#me');if(e)e.textContent=t};
+async function busy(t,fn){msg(t);try{await fn()}catch(e){msg('Errore: '+(e.message||e));console.error(e)}}
+
+function libMenu(){
+  openPanel(`<h2>Impostazioni</h2><p>Backup e importazione</p>
+  <b style="font-size:13px;color:var(--mute)">BACKUP</b>${btn('m1','⤓ Scarica backup di tutti i libri',1)}${btn('m2','⤒ Ripristina da backup')}
+  <b style="font-size:13px;color:var(--mute);display:block;margin-top:14px">IMPORTA</b>${btn('m3','📥 Importa un libro (Word o testo)')}
+  <div class="err" id="me"></div>${btn('mc','Chiudi')}`);
+  $('#mc').onclick=closePanel;
+  $('#m1').onclick=()=>{download(new Blob([JSON.stringify({app:'libri-a-voce',versione:VERSIONE,data:new Date().toISOString(),books},null,1)],{type:'application/json'}),'libri-backup-'+today()+'.json');msg('Backup scaricato ('+books.length+' libri)')};
+  $('#m2').onclick=async()=>{const f=await pickFile('.json,application/json');if(!f)return;busy('Ripristino…',async()=>{
+    const d=JSON.parse(await f.text());const arr=Array.isArray(d)?d:d.books;if(!Array.isArray(arr))throw new Error('file non valido');
+    let n=0,u=0;for(const b of arr){if(!b||!b.id||!Array.isArray(b.chapters))continue;const i=books.findIndex(x=>x.id===b.id);
+      if(i<0){books.push(b);n++}else if((b.updated||0)>(books[i].updated||0)){books[i]=b;u++}else continue;
+      lsSave();window.cloud&&window.cloud.save(b)}
+    render();openPanel('<h2>Ripristino completato</h2><p>'+n+' libri aggiunti, '+u+' aggiornati</p>'+btn('mc','OK',1));$('#mc').onclick=closePanel})};
+  $('#m3').onclick=async()=>{const f=await pickFile('.docx,.txt,.md,text/plain');if(!f)return;busy('Leggo il file…',async()=>{
+    const r=await parseImport(f);closePanel();const t=await ask('Titolo del libro',r.title);if(!t)return;
+    const b={id:uidGen(),title:t,chapters:r.chapters.map(c=>({id:uidGen(),title:c.title,text:c.text})),updated:Date.now()};
+    books.push(b);persist(b);window.cloud&&window.cloud.save(b);open(b.id)})};
+}
+function bookMenu(){
+  const b=cur,c=b.chapters.find(x=>x.id===chap);
+  const ro=!!b._ro;
+  openPanel(`<h2>${esc(b.title)}</h2><p>${ro?'Libro di '+esc(b._owner)+' (sola lettura)':'Condividi, esporta o importa'}</p>
+  ${ro?'':`<b style="font-size:13px;color:var(--mute)">CONDIVISIONE</b>
+  <label style="font-size:15px;color:var(--ink);padding:10px;border:1px solid var(--line);border-radius:10px;margin:8px 0 14px"><input type="checkbox" id="sh" ${b.shared?'checked':''} style="width:20px;height:20px"> 🔗 Condividi con gli altri utenti</label>`}
+  <b style="font-size:13px;color:var(--mute)">UNISCI</b>${btn('u1','📚 Copia in un altro libro…',ro)}
+  <b style="font-size:13px;color:var(--mute);display:block;margin-top:14px">ESPORTA IL LIBRO</b>${btn('e1','📄 Scarica in Word (.docx)',1)}${btn('e2','📕 Scarica in PDF')}
+  ${ro?'':`<b style="font-size:13px;color:var(--mute);display:block;margin-top:14px">IMPORTA TESTO</b>${btn('i1','📥 Aggiungi come nuovi capitoli')}`}
+  ${c&&!ro?btn('i2','📥 Inserisci nel capitolo “'+esc(c.title)+'” al cursore'):''}
+  <div class="err" id="me"></div>${btn('mc','Chiudi')}`);
+  $('#mc').onclick=closePanel;
+  if(!ro)$('#sh').onchange=e=>{b.shared=e.target.checked;b.updated=Date.now();lsSave();window.cloud&&window.cloud.save(b);window.cloud&&window.cloud.share(b);
+    msg(b.shared?'Ora gli altri utenti vedono questo libro':'Il libro non è più condiviso');render()};
+  $('#u1').onclick=()=>mergeMenu(b,c);
+  $('#e1').onclick=()=>busy('Preparo il Word…',async()=>{await exportDocx(b);msg('Word scaricato')});
+  $('#e2').onclick=()=>busy('Preparo il PDF…',async()=>{await exportPdf(b);msg('PDF scaricato')});
+  if(!ro)$('#i1').onclick=async()=>{const f=await pickFile('.docx,.txt,.md,text/plain');if(!f)return;busy('Leggo il file…',async()=>{
+    const r=await parseImport(f);r.chapters.forEach(x=>b.chapters.push({id:uidGen(),title:x.title,text:x.text}));persist(b);
+    chap=b.chapters[b.chapters.length-r.chapters.length].id;closePanel();render()})};
+  if(c&&!ro)$('#i2').onclick=async()=>{const f=await pickFile('.docx,.txt,.md,text/plain');if(!f)return;busy('Leggo il file…',async()=>{
+    const r=await parseImport(f);const txt=r.chapters.map(x=>(r.chapters.length>1?x.title+'\n':'')+x.text).join('\n\n').trim();
+    const [s0,e0]=selPos||[c.text.length,c.text.length];const before=c.text.slice(0,s0),after=c.text.slice(e0);
+    const pre=before&&!/\n$/.test(before)?'\n':'',post=after&&!/^\n/.test(after)?'\n':'';
+    c.text=before+pre+txt+post+after;persist(b);closePanel();render()})};
+}
+// --- importazione ---
+async function parseImport(f){
+  const name=f.name.replace(/\.[^.]+$/,'');let blocks=[];// {h:level|0,t:text}
+  if(/\.docx$/i.test(f.name)){await need('mammoth');
+    const {value}=await mammoth.convertToHtml({arrayBuffer:await f.arrayBuffer()});
+    const dom=new DOMParser().parseFromString(value,'text/html');
+    dom.body.querySelectorAll('h1,h2,h3,p,li').forEach(el=>{const t=el.textContent.replace(/\s+/g,' ').trim();if(!t)return;
+      const m=el.tagName.match(/^H(\d)/);blocks.push({h:m?+m[1]:0,t:(el.tagName==='LI'?'• ':'')+t})});
+  }else{const txt=(await f.text()).replace(/\r/g,'');
+    txt.split('\n').forEach(l=>{const m=l.match(/^(#{1,3})\s+(.+)/);if(m)blocks.push({h:m[1].length,t:m[2].trim()});
+      else if(/^\s*(capitolo|cap\.)\s+\S.{0,80}$/i.test(l))blocks.push({h:2,t:l.trim()});else blocks.push({h:0,t:l.trimEnd()})})}
+  const cnt=l=>blocks.filter(x=>x.h===l).length;let title=name,lvl=0;
+  if(cnt(1)===1&&cnt(2)>0){title=blocks.find(x=>x.h===1).t;blocks=blocks.filter(x=>x.h!==1);lvl=2}
+  else if(cnt(1)>0)lvl=1;else if(cnt(2)>0)lvl=2;else if(cnt(3)>0)lvl=3;
+  const chapters=[];let curc=null;
+  for(const x of blocks){if(lvl&&x.h===lvl){curc={title:x.t,lines:[]};chapters.push(curc);continue}
+    if(!curc){curc={title:lvl?'Introduzione':title,lines:[]};chapters.push(curc)}
+    curc.lines.push(x.h?x.t.toUpperCase():x.t)}
+  const out=chapters.map(c=>({title:c.title,text:c.lines.join('\n').replace(/\n{3,}/g,'\n\n').trim()})).filter(c=>c.text||c.title!=='Introduzione');
+  if(!out.length)throw new Error('il file è vuoto');
+  return {title,chapters:out};
+}
+// --- Word ---
+async function exportDocx(b){await need('docx');
+  const {Document,Packer,Paragraph,TextRun,HeadingLevel,AlignmentType,Footer,PageNumber}=window.docx;
+  const kids=[new Paragraph({heading:HeadingLevel.TITLE,alignment:AlignmentType.CENTER,spacing:{before:3000,after:400},children:[new TextRun({text:b.title})]}),
+    new Paragraph({pageBreakBefore:true,heading:HeadingLevel.HEADING_1,alignment:AlignmentType.CENTER,children:[new TextRun('Indice')]}),
+    ...b.chapters.map((c,i)=>new Paragraph({spacing:{after:120},children:[new TextRun(`${i+1}. ${c.title}`)]}))];
+  b.chapters.forEach((c,i)=>{
+    kids.push(new Paragraph({pageBreakBefore:true,alignment:AlignmentType.CENTER,spacing:{after:120},children:[new TextRun({text:'Capitolo '+(i+1),italics:true,color:'8A7D5C'})]}));
+    kids.push(new Paragraph({heading:HeadingLevel.HEADING_1,alignment:AlignmentType.CENTER,spacing:{after:480},children:[new TextRun(c.title)]}));
+    c.text.split('\n').forEach(p=>kids.push(new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:160,line:360},children:[new TextRun(p)]})))});
+  const d=new Document({creator:'Libri a voce',title:b.title,
+    styles:{default:{document:{run:{font:'Georgia',size:24}}},paragraphStyles:[]},
+    sections:[{properties:{},footers:{default:new Footer({children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({children:[PageNumber.CURRENT],size:20})]})]})},children:kids}]});
+  download(await Packer.toBlob(d),fname(b.title)+'.docx');
+}
+// --- PDF ---
+async function exportPdf(b){await need('pdf');
+  const {jsPDF}=window.jspdf;const d=new jsPDF({unit:'mm',format:'a5'});
+  const W=148,H=210,M=18,TW=W-2*M,LH=5.6;let y=M;
+  const fix=t=>t.replace(/[^\x00-\xFF‘’“”–—…€•]/g,'');
+  const center=(t,yy,size,style)=>{d.setFont('times',style);d.setFontSize(size);d.splitTextToSize(fix(t),TW).forEach((l,k)=>d.text(l,W/2,yy+k*size*.45,{align:'center'}))};
+  center(b.title,80,24,'bold');
+  d.addPage();center('Indice',M+8,16,'bold');y=M+22;d.setFont('times','normal');d.setFontSize(11);
+  b.chapters.forEach((c,i)=>{d.splitTextToSize(fix(`${i+1}.  ${c.title}`),TW).forEach(l=>{if(y>H-M){d.addPage();y=M}d.text(l,M,y);y+=LH})});
+  b.chapters.forEach((c,i)=>{d.addPage();center('Capitolo '+(i+1),M+18,10,'italic');center(c.title,M+28,16,'bold');
+    y=M+28+d.splitTextToSize(fix(c.title),TW).length*7+8;d.setFont('times','normal');d.setFontSize(11);
+    c.text.split('\n').forEach(p=>{if(!p.trim()){y+=LH*.6;return}
+      d.splitTextToSize(fix(p),TW).forEach(l=>{if(y>H-M-4){d.addPage();y=M+4;d.setFont('times','normal');d.setFontSize(11)}d.text(l,M,y);y+=LH});y+=LH*.4})});
+  const n=d.getNumberOfPages();for(let p=2;p<=n;p++){d.setPage(p);d.setFont('times','normal');d.setFontSize(9);d.text(String(p),W/2,H-8,{align:'center'})}
+  download(d.output('blob'),fname(b.title)+'.pdf');
+}
+
+// --- copia / unisci in un altro libro ---
+function mergeMenu(src,c){
+  const sel=c&&selPos&&selPos[1]>selPos[0]?c.text.slice(selPos[0],selPos[1]).trim():'';
+  const mine=books.filter(x=>x.id!==src.id).sort((a,b)=>a.title.localeCompare(b.title));
+  openPanel(`<h2>Copia in un altro libro</h2><p>Da: «${esc(src.title)}»</p>
+  <b style="font-size:13px;color:var(--mute)">COSA COPIARE</b>
+  <label><input type="radio" name="what" value="all" checked> Tutto il libro</label>
+  <label><input type="radio" name="what" value="ch"> Solo alcuni capitoli</label>
+  <div id="chl" class="hide" style="margin:2px 0 6px 22px">${src.chapters.map((x,i)=>`<label><input type="checkbox" value="${x.id}"> ${i+1}. ${esc(x.title)}</label>`).join('')}</div>
+  <label style="${sel?'':'opacity:.5'}"><input type="radio" name="what" value="sel" ${sel?'':'disabled'}> Testo selezionato${sel?` (${words(sel)} parole)`:' — prima seleziona del testo nel capitolo'}</label>
+  <b style="font-size:13px;color:var(--mute);display:block;margin-top:12px">IN QUALE LIBRO</b>
+  <select id="dst" style="width:100%;font:inherit;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin:6px 0">
+    ${mine.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('')}<option value="__new">➕ Nuovo libro</option></select>
+  <b style="font-size:13px;color:var(--mute);display:block;margin-top:6px">DOVE</b>
+  <select id="pos" style="width:100%;font:inherit;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin:6px 0"></select>
+  <div class="err" id="me"></div>${btn('go','Copia',1)}${btn('mc','Annulla')}`);
+  $('#mc').onclick=closePanel;
+  const what=()=>document.querySelector('input[name=what]:checked').value;
+  document.querySelectorAll('input[name=what]').forEach(r=>r.onchange=()=>$('#chl').classList.toggle('hide',what()!=='ch'));
+  const fillPos=()=>{const d=books.find(x=>x.id===$('#dst').value);
+    $('#pos').innerHTML=!d?'<option value="end">Nuovo libro con il contenuto copiato</option>':
+      '<option value="end">In fondo, come nuovi capitoli</option>'+d.chapters.map((x,i)=>`<option value="after:${i}">Dopo il capitolo ${i+1}. ${esc(x.title)}</option>`).join('')+
+      d.chapters.map((x,i)=>`<option value="into:${i}">Dentro il capitolo ${i+1}. ${esc(x.title)} (in fondo al testo)</option>`).join('')};
+  $('#dst').onchange=fillPos;fillPos();
+  $('#go').onclick=async()=>{
+    const w=what();let chs;
+    if(w==='all')chs=src.chapters;
+    else if(w==='ch'){const ids=[...$('#chl').querySelectorAll('input:checked')].map(x=>x.value);chs=src.chapters.filter(x=>ids.includes(x.id));if(!chs.length)return msg('Scegli almeno un capitolo')}
+    else chs=[{title:c.title,text:sel}];
+    chs=chs.map(x=>({id:uidGen(),title:x.title,text:x.text}));
+    let d=books.find(x=>x.id===$('#dst').value),first;
+    if(!d){const t=await ask('Titolo del nuovo libro',src.title+' (copia)');if(!t)return;
+      d={id:uidGen(),title:t,chapters:chs,updated:Date.now()};books.push(d);first=chs[0].id}
+    else{const p=$('#pos').value;
+      if(p==='end'){d.chapters.push(...chs);first=chs[0].id}
+      else if(p.startsWith('after:')){const k=+p.slice(6);d.chapters.splice(k+1,0,...chs);first=chs[0].id}
+      else{const t=d.chapters[+p.slice(5)];const add=chs.map(x=>(chs.length>1||w!=='sel'?x.title+'\n':'')+x.text).join('\n\n').trim();
+        t.text=(t.text.trim()?t.text.replace(/\s*$/,'')+'\n\n':'')+add;first=t.id}}
+    persist(d);window.cloud&&window.cloud.save(d);closePanel();
+    cur=d;chap=first;render();scrollTo(0,0)};
+}
+
+render();
+</script>
+<script type="module">
+import {firebaseConfig} from './config.js?v=1.5.1';
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,updatePassword,setPersistence,browserLocalPersistence,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {getFirestore,collection,getDocs,getDoc,doc,setDoc,updateDoc,deleteDoc,onSnapshot} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+const DOM='libri-elisa.app',ADMIN='admin';
+const app=initializeApp(firebaseConfig),auth=getAuth(app),fs=getFirestore(app);
+setPersistence(auth,browserLocalPersistence).catch(()=>{});
+const em=u=>u.trim().toLowerCase()+'@'+DOM, un=e=>(e||'').split('@')[0];
+const $=s=>document.querySelector(s);
+let user=null,uname='';
+const ref=id=>doc(fs,'users',user.uid,'books',id);
+const sref=id=>doc(fs,'shared',id);
+window.cloud={
+  save:b=>{if(!user||b._ro)return;const d=JSON.parse(JSON.stringify(b));setDoc(ref(b.id),d).catch(e=>console.warn(e));
+    if(b.shared)setDoc(sref(b.id),{owner:user.uid,ownerName:uname,book:d}).catch(e=>console.warn(e))},
+  share:b=>{if(!user)return;if(b.shared)setDoc(sref(b.id),{owner:user.uid,ownerName:uname,book:JSON.parse(JSON.stringify(b))}).catch(e=>alert('Condivisione non riuscita: '+e.code));
+    else deleteDoc(sref(b.id)).catch(()=>{})},
+  del:id=>{if(!user)return;deleteDoc(ref(id)).catch(()=>{});deleteDoc(sref(id)).catch(()=>{})}};
+let unsubShared=null;
+function watchShared(){if(unsubShared)unsubShared();
+  unsubShared=onSnapshot(collection(fs,'shared'),snap=>{const arr=[];snap.forEach(d=>{const x=d.data();if(x.owner!==user.uid&&x.book)arr.push({...x.book,_ro:true,_owner:x.ownerName||'?'})});
+    arr.sort((a,b)=>a.title.localeCompare(b.title));shared.length=0;shared.push(...arr);
+    if(cur&&cur._ro){const n=shared.find(b=>b.id===cur.id);cur=n||null;render()}else if(!cur)render()},e=>console.warn(e))}
+const showLogin=(msg='')=>{$('#login').classList.remove('hide');$('#le').textContent=msg;$('#lp').value=''};
+$('#lf').onsubmit=async e=>{e.preventDefault();const u=$('#lu').value.trim(),p=$('#lp').value;
+  if(!u||!p){$('#le').textContent='Inserisci utente e password';return}
+  $('#le').textContent='Accesso…';
+  try{await signInWithEmailAndPassword(auth,em(u),p)}catch(err){$('#le').textContent='Utente o password errati'}};
+const panel=h=>{$('#pb').innerHTML=h;$('#panel').classList.remove('hide')};
+const close=()=>$('#panel').classList.add('hide');
+$('#panel').onclick=e=>{if(e.target.id==='panel')close()};
+function pwForm(forced){
+  panel(`<h2>${forced?'Imposta la tua password':'Cambia password'}</h2><p>${forced?'Primo accesso: scegli una nuova password':'Utente: '+uname}</p>
+  <input id="p1" type="password" placeholder="Nuova password (min 6)" autocomplete="new-password"><input id="p2" type="password" placeholder="Ripeti password" autocomplete="new-password">
+  <div class="err" id="pe"></div><button class="pri" id="ps">Salva</button>${forced?'':'<button id="pc" style="width:100%;margin-top:6px">Annulla</button>'}`);
+  if(!forced)$('#pc').onclick=close;
+  $('#ps').onclick=async()=>{const a=$('#p1').value,b=$('#p2').value;
+    if(a.length<6)return $('#pe').textContent='Almeno 6 caratteri';if(a!==b)return $('#pe').textContent='Le password non coincidono';
+    try{await updatePassword(user,a);
+      const r=doc(fs,'allowed',uname);
+      if(uname===ADMIN)await setDoc(r,{mustChange:false},{merge:true});else await updateDoc(r,{mustChange:false,pw:a});
+      close();if(forced)enter()}
+    catch(e){$('#pe').textContent=e.code==='auth/requires-recent-login'?'Esci e rientra, poi riprova':'Errore: '+e.code}};
+}
+function account(){
+  panel(`<h2>${uname}</h2><p>${uname===ADMIN?'Amministratore':'Utente'}</p>
+  ${uname===ADMIN?'<button class="pri" id="au">👥 Gestisci utenti</button>':''}
+  <button id="ap" style="width:100%;margin-top:8px">Cambia password</button><button id="ax" style="width:100%;margin-top:8px">Esci</button><button id="ac" class="ghost" style="width:100%;margin-top:4px">Chiudi</button>`);
+  if(uname===ADMIN)$('#au').onclick=users;
+  $('#ap').onclick=()=>pwForm(false);$('#ac').onclick=close;$('#ax').onclick=()=>{close();signOut(auth)};
+}
+let sec=null;
+async function secAuth(){sec=sec||initializeApp(firebaseConfig,'sec');return getAuth(sec)}
+async function users(){
+  const snap=await getDocs(collection(fs,'allowed'));const list=[];snap.forEach(d=>{if(d.id!==ADMIN)list.push({u:d.id,...d.data()})});list.sort((a,b)=>a.u.localeCompare(b.u));
+  panel(`<h2>Utenti</h2><p>Solo gli utenti in elenco possono entrare</p>
+  <div class="ulist">${list.length?list.map(x=>`<div><span>👤 <b>${x.u}</b><br><small style="color:var(--mute)">password: <code>${x.pw?esc(x.pw):'—'}</code></small></span><span><button class="ghost" data-e="${x.u}" title="Cambia password">✎</button><button class="ghost" data-d="${x.u}" title="Rimuovi accesso">🗑</button></span></div>`).join(''):'<p>Nessun utente</p>'}</div>
+  <b style="font-size:14px">Nuovo utente</b>
+  <input id="nu" placeholder="Nome utente (es. mario)" autocapitalize="none"><input id="np" placeholder="Password (min 6)" autocapitalize="none">
+  <label><input type="checkbox" id="nm"> Deve cambiare password al primo accesso</label>
+  <div class="err" id="ne"></div><button class="pri" id="nc">Crea utente</button><button id="ucl" style="width:100%;margin-top:6px">Chiudi</button>`);
+  $('#ucl').onclick=close;
+  $('#pb').querySelectorAll('[data-d]').forEach(x=>x.onclick=async()=>{const u=x.dataset.d;
+    if(await ask('Scrivi '+u.toUpperCase()+' per togliere l\'accesso')!==u.toUpperCase())return;
+    await deleteDoc(doc(fs,'allowed',u));users()});
+  $('#pb').querySelectorAll('[data-e]').forEach(x=>x.onclick=async()=>{const u=x.dataset.e,it=list.find(l=>l.u===u);
+    if(!it.pw){$('#ne').textContent='Password attuale sconosciuta: rimuovi e ricrea l\'utente';return}
+    const np=await ask('Nuova password per '+u+' (min 6)',it.pw);if(!np||np===it.pw)return;
+    if(np.length<6){$('#ne').textContent='Password di almeno 6 caratteri';return}
+    $('#ne').textContent='Aggiorno…';
+    try{const sa=await secAuth();const c=await signInWithEmailAndPassword(sa,em(u),it.pw);await updatePassword(c.user,np);await signOut(sa).catch(()=>{});
+      await updateDoc(doc(fs,'allowed',u),{pw:np});users()}
+    catch(e){$('#ne').textContent=e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'?'La password salvata non è più valida (l\'utente l\'ha cambiata fuori app?)':'Errore: '+e.code}});
+  $('#nc').onclick=async()=>{const u=$('#nu').value.trim().toLowerCase(),p=$('#np').value;
+    if(!/^[a-z0-9._-]{3,30}$/.test(u))return $('#ne').textContent='Nome: almeno 3 caratteri, solo lettere, numeri, . _ -';
+    if(u===ADMIN)return $('#ne').textContent='Nome riservato';
+    if(list.some(l=>l.u===u))return $('#ne').textContent='Utente già presente';
+    if(p.length<6)return $('#ne').textContent='Password di almeno 6 caratteri';
+    $('#ne').textContent='Creo…';
+    try{const sa=await secAuth();
+      try{await createUserWithEmailAndPassword(sa,em(u),p)}
+      catch(e){if(e.code!=='auth/email-already-in-use')throw e;
+        try{await signInWithEmailAndPassword(sa,em(u),p)}catch(e2){$('#ne').textContent='Questo nome era già usato con un\'altra password: scegli un altro nome';return}}
+      await signOut(sa).catch(()=>{});
+      await setDoc(doc(fs,'allowed',u),{mustChange:$('#nm').checked,pw:p,created:Date.now()});
+      users()}catch(e){$('#ne').textContent='Errore: '+e.code}};
+}
+const esc=t=>String(t).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+$('#auth').onclick=()=>user&&account();
+async function enter(){
+  LS='libri-'+user.uid;lsLoad();cur=null;render();
+  try{const snap=await getDocs(collection(fs,'users',user.uid,'books'));
+    const remote=new Map();snap.forEach(d=>remote.set(d.id,d.data()));
+    for(const b of books){const r=remote.get(b.id);if(!r||(b.updated||0)>(r.updated||0)){remote.set(b.id,b);await window.cloud.save(b)}}
+    books.length=0;remote.forEach(b=>books.push(b));lsSave();render();watchShared();
+  }catch(e){alert('Errore sincronizzazione: '+(e.code||e.message))}
+}
+onAuthStateChanged(auth,async u=>{
+  user=u;
+  if(!u){if(unsubShared){unsubShared();unsubShared=null}shared.length=0;LS=null;books.length=0;cur=null;render();showLogin();return}
+  uname=un(u.email);$('#auth').textContent='👤';$('#auth').title=uname;
+  try{const d=await getDoc(doc(fs,'allowed',uname));
+    if(uname!==ADMIN&&!d.exists()){await signOut(auth);showLogin('Utente non autorizzato');return}
+    $('#login').classList.add('hide');
+    const must=uname===ADMIN?(!d.exists()||d.data().mustChange):d.data().mustChange;
+    if(must)pwForm(true);else enter();
+  }catch(e){await signOut(auth);showLogin('Accesso non consentito')}
+});
+</script>
+</body>
+</html>
